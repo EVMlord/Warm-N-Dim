@@ -1,0 +1,69 @@
+:root {
+  color-scheme: dark;
+  font-family: system-ui, sans-serif;
+}
+
+/* Overlay window */
+.overlay-body {
+  margin: 0;
+  background: transparent;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+#dim,
+#tint {
+  position: fixed;
+  inset: 0;
+  pointer-events: none; /* ensure click-through from renderer side too */
+}
+
+#dim {
+  background: #000;
+  opacity: 0;
+}
+#tint {
+  background: rgb(255, 140, 60);
+  opacity: 0;
+}
+
+/* Control window */
+.control-body {
+  margin: 0;
+  padding: 14px;
+}
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+header h1 {
+  font-size: 16px;
+  margin: 0;
+}
+header button {
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid #444;
+  background: #222;
+  color: #fff;
+}
+
+.slider {
+  margin-top: 14px;
+  display: grid;
+  grid-template-columns: 80px 1fr 48px;
+  gap: 8px;
+  align-items: center;
+}
+label {
+  opacity: 0.8;
+}
+input[type="range"] {
+  width: 100%;
+}
+footer {
+  margin-top: 14px;
+  opacity: 0.7;
+}

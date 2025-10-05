@@ -1,0 +1,40 @@
+{
+  "name": "warm-n-dim",
+  "version": "0.1.0",
+  "private": true,
+  "main": "src/main.js",
+  "description": "Minimal blue-light filter + super dim overlay for Windows (Electron)",
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/EVMlord/Warm-N-Dim.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/EVMlord/Warm-N-Dim/issues"
+  },
+  "homepage": "https://github.com/EVMlord/Warm-N-Dim#readme",
+  "devDependencies": {
+    "electron": "^38.2.1",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "com.example.warmdim",
+    "productName": "Warm N Dim",
+    "win": {
+      "target": "nsis",
+      "icon": "icons/icon.ico"
+    },
+    "files": [
+      "src/**/*",
+      "package.json"
+    ]
+  }
+}
