@@ -1,6 +1,6 @@
 {
   "name": "warm-n-dim",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "main": "src/main.js",
   "description": "Minimal blue-light filter + super dim overlay for Windows (Electron)",

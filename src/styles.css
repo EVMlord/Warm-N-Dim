@@ -12,18 +12,18 @@
   overflow: hidden;
 }
 
-#dim,
-#tint {
+.overlay-body #dim,
+.overlay-body #tint {
   position: fixed;
   inset: 0;
   pointer-events: none; /* ensure click-through from renderer side too */
 }
 
-#dim {
+.overlay-body #dim {
   background: #000;
   opacity: 0;
 }
-#tint {
+.overlay-body #tint {
   background: rgb(255, 140, 60);
   opacity: 0;
 }

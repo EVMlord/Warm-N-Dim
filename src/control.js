@@ -21,4 +21,7 @@ dim.addEventListener("input", () => {
   send();
 });
 
+// send initial values on load so overlay matches the sliders
+document.addEventListener("DOMContentLoaded", send);
+
 toggle.addEventListener("click", () => window.api.toggleOverlay());
