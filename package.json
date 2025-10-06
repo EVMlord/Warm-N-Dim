@@ -74,6 +74,17 @@
         "owner": "evmlord",
         "repo": "Warm-N-Dim"
       }
-    ]
+    ],
+    "directories": {
+      "output": "release"
+    }
+  },
+  "files.watcherExclude": {
+    "**/dist/**": true,
+    "**/release/**": true
+  },
+  "search.exclude": {
+    "dist/**": true,
+    "release/**": true
   }
 }
