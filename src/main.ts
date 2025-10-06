@@ -11,12 +11,11 @@ import {
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import Store from "electron-store";
-import { autoUpdater } from "electron-updater";
+import * as Updater from "electron-updater";
+const { autoUpdater } = Updater;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-const isDev = !app.isPackaged;
 
 // ---- State ----
 let tray: Tray | null = null;
@@ -313,7 +312,7 @@ function setupAutoUpdater() {
     if (res === 0) autoUpdater.quitAndInstall();
   });
 
-  if (!isDev) {
+  if (app.isPackaged) {
     // initial check + notification balloon
     autoUpdater.checkForUpdatesAndNotify();
     // optional: periodic checks (every 6h)
@@ -365,7 +364,9 @@ app.whenReady().then(() => {
   createControlWindow();
   createTray();
 
-  setupAutoUpdater();
+  if (app.isPackaged) {
+    setupAutoUpdater();
+  }
 
   // React to display changes
   screen.on("display-added", refreshOverlays);
