@@ -7,11 +7,11 @@
       content="default-src 'self'; style-src 'self' 'unsafe-inline';"
     />
     <link rel="stylesheet" href="./styles.css" />
-    <title>Warm Dim Controls</title>
+    <title>Warm N Dim Controls</title>
   </head>
   <body class="control-body">
     <header>
-      <h1>Warm Dim</h1>
+      <h1>Warm N Dim</h1>
       <button id="toggle">Toggle</button>
     </header>
 
@@ -25,6 +25,13 @@
       <label for="dim">Dim</label>
       <input id="dim" type="range" min="0" max="100" value="20" />
       <output id="dimOut">20</output>
+    </section>
+
+    <section class="row">
+      <label class="checkbox-row">
+        <input type="checkbox" id="autolaunch" />
+        Launch at startup
+      </label>
     </section>
 
     <footer>

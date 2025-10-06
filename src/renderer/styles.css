@@ -28,6 +28,13 @@
   opacity: 0;
 }
 
+/* Debug flash layer (cyan blink) */
+.overlay-body #flash {
+  background: rgba(0, 255, 255, 0.8);
+  opacity: 0;
+  transition: opacity 0.18s ease;
+}
+
 /* Control window */
 .control-body {
   margin: 0;
@@ -63,6 +70,16 @@ label {
 input[type="range"] {
   width: 100%;
 }
+
+.row {
+  margin-top: 12px;
+}
+.checkbox-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
 footer {
   margin-top: 14px;
   opacity: 0.7;

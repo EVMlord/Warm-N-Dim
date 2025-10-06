@@ -1,13 +1,16 @@
 {
   "name": "warm-n-dim",
-  "version": "0.1.1",
+  "version": "0.2.1",
   "private": true,
-  "main": "src/main.js",
+  "type": "module",
+  "main": "dist/main.js",
   "description": "Minimal blue-light filter + super dim overlay for Windows (Electron)",
   "scripts": {
+    "build": "tsc -p tsconfig.main.json && tsc -p tsconfig.preload.json && tsc -p tsconfig.renderer.json && cpy \"src/renderer/**/*.{html,css}\" dist/renderer --parents && cpy icons dist --parents",
+    "dev": "concurrently -k \"tsc -w -p tsconfig.main.json\" \"tsc -w -p tsconfig.preload.json\" \"tsc -w -p tsconfig.renderer.json\" \"cpy \\\"src/renderer/**/*.{html,css}\\\" dist/renderer --watch --parents\" \"wait-on dist/main.js && electron .\"",
     "start": "electron .",
     "pack": "electron-builder --dir",
-    "dist": "electron-builder"
+    "dist": "pnpm build && electron-builder"
   },
   "repository": {
     "type": "git",
@@ -16,25 +19,50 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
   "bugs": {
     "url": "https://github.com/EVMlord/Warm-N-Dim/issues"
   },
   "homepage": "https://github.com/EVMlord/Warm-N-Dim#readme",
+  "dependencies": {
+    "electron-store": "^11.0.0"
+  },
   "devDependencies": {
+    "@types/node": "^24.6.2",
+    "concurrently": "^9.2.1",
+    "cpy-cli": "^6.0.0",
     "electron": "^38.2.1",
-    "electron-builder": "^26.0.12"
+    "electron-builder": "^26.0.12",
+    "typescript": "^5.9.3",
+    "wait-on": "^9.0.1"
   },
   "build": {
-    "appId": "com.example.warmdim",
+    "appId": "dev.evmlord.warmndim",
     "productName": "Warm N Dim",
+    "asar": true,
+    "compression": "maximum",
+    "artifactName": "WarmNDim-Setup-${version}.exe",
+    "files": [
+      "dist/**/*",
+      "package.json",
+      "!**/*.map",
+      "!**/*.ts"
+    ],
+    "electronLanguages": [
+      "en-US"
+    ],
     "win": {
       "target": "nsis",
-      "icon": "icons/icon.ico"
+      "icon": "icons/icon.ico",
+      "executableName": "WarmNDim"
     },
-    "files": [
-      "src/**/*",
-      "package.json"
-    ]
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Warm N Dim"
+    },
+    "afterPack": "scripts/afterPack.cjs"
   }
 }
