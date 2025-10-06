@@ -1,6 +1,7 @@
 import {
   app,
   BrowserWindow,
+  dialog,
   Tray,
   Menu,
   screen,
@@ -9,11 +10,13 @@ import {
 } from "electron";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-// import fs from "node:fs";
 import Store from "electron-store";
+import { autoUpdater } from "electron-updater";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+const isDev = !app.isPackaged;
 
 // ---- State ----
 let tray: Tray | null = null;
@@ -51,59 +54,6 @@ function applyAutoLaunch() {
     console.error("setLoginItemSettings failed", e);
   }
 }
-
-// ---- Robust asset resolver ----
-// Handles dev (src/), tsc build (dist/ + src/), and packaged (app.asar)
-// function resolveAsset(...segments: string[]) {
-//   // 1) dist-relative (e.g., dist/preload.js)
-//   const p1 = path.join(__dirname, ...segments);
-//   if (fs.existsSync(p1)) return p1;
-
-//   // 2) src-relative (e.g., dist/../src/overlay.html)
-//   const p2 = path.join(__dirname, "../src/renderer", ...segments);
-//   if (fs.existsSync(p2)) return p2;
-
-//   // 3) packaged
-//   const p3 = path.join(process.resourcesPath, ...segments);
-//   return p3;
-// }
-
-// const paths = {
-//   preload: () => resolveAsset("preload.js"),
-//   overlayHtml: () => resolveAsset("overlay.html"),
-//   controlHtml: () => resolveAsset("control.html"),
-//   trayIcon: () => resolveAsset("../icons", "icon.ico"),
-// };
-
-// // Resolve built (dist) first, then src fallback (useful during early dev)
-// function resolveDist(...s: string[]) {
-//   return path.join(__dirname, ...s);
-// }
-// function resolveSrcRenderer(...s: string[]) {
-//   return path.join(__dirname, "../src/renderer", ...s);
-// }
-// function pick(...candidates: string[]) {
-//   return candidates.find((p) => fs.existsSync(p)) || candidates[0];
-// }
-
-// const paths = {
-//   preload: () => pick(resolveDist("preload.js")),
-//   overlayHtml: () =>
-//     pick(
-//       resolveDist("renderer/overlay.html"),
-//       resolveSrcRenderer("overlay.html")
-//     ),
-//   controlHtml: () =>
-//     pick(
-//       resolveDist("renderer/control.html"),
-//       resolveSrcRenderer("control.html")
-//     ),
-//   trayIcon: () =>
-//     pick(
-//       resolveDist("icons/icon.ico"),
-//       path.join(__dirname, "../icons/icon.ico")
-//     ),
-// };
 
 const paths = {
   preload: () => path.join(__dirname, "preload.js"),
@@ -273,6 +223,11 @@ function buildTrayMenu() {
       ],
     },
     { type: "separator" },
+    {
+      label: "Check for updates…",
+      click: () => autoUpdater.checkForUpdatesAndNotify(),
+    },
+    { type: "separator" },
     { role: "quit" },
   ]);
 }
@@ -320,6 +275,52 @@ function createControlWindow() {
   });
 }
 
+// ---- Updates ----
+function setupAutoUpdater() {
+  // Allow betas if our app version has a prerelease tag (e.g. 1.2.0-beta.1)
+  autoUpdater.allowPrerelease = /-/.test(app.getVersion());
+  autoUpdater.autoDownload = true; // download when found
+  autoUpdater.autoInstallOnAppQuit = true; // install on quit (or call quitAndInstall)
+
+  autoUpdater.on("error", (err) => {
+    console.error("[Updater] error:", err);
+  });
+
+  autoUpdater.on("update-available", (info) => {
+    console.log("[Updater] update available:", info.version);
+    tray?.displayBalloon?.({
+      title: "Warm N Dim",
+      content: "Update available. Downloading…",
+    });
+  });
+
+  autoUpdater.on("download-progress", (p) => {
+    tray?.setToolTip?.(`Warm N Dim — downloading ${p.percent.toFixed(0)}%`);
+  });
+
+  autoUpdater.on("update-downloaded", (info) => {
+    console.log("[Updater] update downloaded:", info.version);
+    tray?.setToolTip?.("Warm N Dim");
+    const res = dialog.showMessageBoxSync({
+      type: "info",
+      buttons: ["Restart now", "Later"],
+      defaultId: 0,
+      cancelId: 1,
+      title: "Update ready",
+      message: `Warm N Dim ${info.version} is ready to install.`,
+      detail: "Restart to apply the update.",
+    });
+    if (res === 0) autoUpdater.quitAndInstall();
+  });
+
+  if (!isDev) {
+    // initial check + notification balloon
+    autoUpdater.checkForUpdatesAndNotify();
+    // optional: periodic checks (every 6h)
+    setInterval(() => autoUpdater.checkForUpdates(), 6 * 60 * 60 * 1000);
+  }
+}
+
 // IPC from control window
 ipcMain.on("settings:change", (_evt, patch: Partial<Settings>) => {
   const before = { ...settings };
@@ -363,6 +364,8 @@ app.whenReady().then(() => {
   refreshOverlays();
   createControlWindow();
   createTray();
+
+  setupAutoUpdater();
 
   // React to display changes
   screen.on("display-added", refreshOverlays);

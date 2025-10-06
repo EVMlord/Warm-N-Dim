@@ -1,7 +1,7 @@
 const fs = require("fs/promises");
 const path = require("path");
 
-exports.default = async function (ctx) {
+module.exports = async function afterPack(ctx) {
   const appDir = ctx.appOutDir;
 
   // 1) Keep only en-US locale
@@ -11,7 +11,9 @@ exports.default = async function (ctx) {
     for (const f of await fs.readdir(loc)) {
       if (!keep.has(f)) await fs.rm(path.join(loc, f), { force: true });
     }
-  } catch {}
+  } catch {
+    // locales folder may not exist in some builds
+  }
 
   // 2) Remove SwiftShader software GL fallback
   //    Cuts ~7–10 MB but on rare systems without GPU you lose rendering.

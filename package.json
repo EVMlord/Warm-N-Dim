@@ -10,7 +10,8 @@
     "dev": "concurrently -k \"tsc -w -p tsconfig.main.json\" \"tsc -w -p tsconfig.preload.json\" \"tsc -w -p tsconfig.renderer.json\" \"cpy \\\"src/renderer/**/*.{html,css}\\\" dist/renderer --watch --parents\" \"wait-on dist/main.js && electron .\"",
     "start": "electron .",
     "pack": "electron-builder --dir",
-    "dist": "pnpm build && electron-builder"
+    "dist": "pnpm build && electron-builder",
+    "release": "node scripts/release.cjs"
   },
   "repository": {
     "type": "git",
@@ -24,12 +25,14 @@
   },
   "homepage": "https://github.com/EVMlord/Warm-N-Dim#readme",
   "dependencies": {
-    "electron-store": "^11.0.0"
+    "electron-store": "^11.0.0",
+    "electron-updater": "^6.6.2"
   },
   "devDependencies": {
     "@types/node": "^24.6.2",
     "concurrently": "^9.2.1",
     "cpy-cli": "^6.0.0",
+    "dotenv": "^17.2.3",
     "electron": "^38.2.1",
     "electron-builder": "^26.0.12",
     "typescript": "^5.9.3",
@@ -61,8 +64,16 @@
       "allowToChangeInstallationDirectory": false,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "Warm N Dim"
+      "shortcutName": "Warm N Dim",
+      "differentialPackage": true
     },
-    "afterPack": "scripts/afterPack.cjs"
+    "afterPack": "scripts/afterPack.cjs",
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "evmlord",
+        "repo": "Warm-N-Dim"
+      }
+    ]
   }
 }
