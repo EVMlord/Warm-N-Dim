@@ -12,7 +12,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import Store from "electron-store";
 import * as Updater from "electron-updater";
-const { autoUpdater } = Updater;
+
+type AppUpdater = import("electron-updater").AppUpdater;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -20,6 +21,7 @@ const __dirname = path.dirname(__filename);
 // ---- State ----
 let tray: Tray | null = null;
 let controlWin: BrowserWindow | null = null;
+let updater: AppUpdater | null = null;
 const overlayWins = new Map<number, BrowserWindow>(); // display.id -> BrowserWindow
 
 // ---- Store with defaults----
@@ -67,6 +69,12 @@ function logPathsOnce() {
   console.log("[WarmNDim] overlayHtml:", paths.overlayHtml());
   console.log("[WarmNDim] controlHtml:", paths.controlHtml());
   console.log("[WarmNDim] trayIcon:", paths.trayIcon());
+}
+
+// Resolve autoUpdater no matter how the module is exposed
+function getAutoUpdater(): AppUpdater | null {
+  const m = Updater as any;
+  return m?.autoUpdater ?? m?.default?.autoUpdater ?? null;
 }
 
 // ---- Overlay management ----
@@ -224,7 +232,8 @@ function buildTrayMenu() {
     { type: "separator" },
     {
       label: "Check for updates…",
-      click: () => autoUpdater.checkForUpdatesAndNotify(),
+      enabled: !!updater,
+      click: () => updater?.checkForUpdatesAndNotify(),
     },
     { type: "separator" },
     { role: "quit" },
@@ -276,16 +285,30 @@ function createControlWindow() {
 
 // ---- Updates ----
 function setupAutoUpdater() {
-  // Allow betas if our app version has a prerelease tag (e.g. 1.2.0-beta.1)
-  autoUpdater.allowPrerelease = /-/.test(app.getVersion());
-  autoUpdater.autoDownload = true; // download when found
-  autoUpdater.autoInstallOnAppQuit = true; // install on quit (or call quitAndInstall)
+  if (!app.isPackaged) {
+    console.log("[Updater] electron-updater running in dev");
+    return; // only in production
+  }
 
-  autoUpdater.on("error", (err) => {
+  updater = getAutoUpdater();
+
+  if (!updater) {
+    console.warn("[Updater] electron-updater not available");
+    return;
+  }
+
+  console.warn("[Updater] electron-updater available");
+
+  // Allow betas if our app version has a prerelease tag (e.g. 1.2.0-beta.1)
+  updater.allowPrerelease = /-/.test(app.getVersion());
+  updater.autoDownload = true; // download when found
+  updater.autoInstallOnAppQuit = true; // install on quit (or call quitAndInstall)
+
+  updater.on("error", (err) => {
     console.error("[Updater] error:", err);
   });
 
-  autoUpdater.on("update-available", (info) => {
+  updater.on("update-available", (info) => {
     console.log("[Updater] update available:", info.version);
     tray?.displayBalloon?.({
       title: "Warm N Dim",
@@ -293,11 +316,11 @@ function setupAutoUpdater() {
     });
   });
 
-  autoUpdater.on("download-progress", (p) => {
+  updater.on("download-progress", (p) => {
     tray?.setToolTip?.(`Warm N Dim — downloading ${p.percent.toFixed(0)}%`);
   });
 
-  autoUpdater.on("update-downloaded", (info) => {
+  updater.on("update-downloaded", (info) => {
     console.log("[Updater] update downloaded:", info.version);
     tray?.setToolTip?.("Warm N Dim");
     const res = dialog.showMessageBoxSync({
@@ -309,14 +332,14 @@ function setupAutoUpdater() {
       message: `Warm N Dim ${info.version} is ready to install.`,
       detail: "Restart to apply the update.",
     });
-    if (res === 0) autoUpdater.quitAndInstall();
+    if (res === 0) updater!.quitAndInstall();
   });
 
   if (app.isPackaged) {
     // initial check + notification balloon
-    autoUpdater.checkForUpdatesAndNotify();
+    updater.checkForUpdatesAndNotify();
     // optional: periodic checks (every 6h)
-    setInterval(() => autoUpdater.checkForUpdates(), 6 * 60 * 60 * 1000);
+    setInterval(() => updater!.checkForUpdates(), 6 * 60 * 60 * 1000);
   }
 }
 
@@ -364,9 +387,7 @@ app.whenReady().then(() => {
   createControlWindow();
   createTray();
 
-  if (app.isPackaged) {
-    setupAutoUpdater();
-  }
+  setupAutoUpdater();
 
   // React to display changes
   screen.on("display-added", refreshOverlays);
