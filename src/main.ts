@@ -1,3 +1,11 @@
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
+const requireCJS = createRequire(import.meta.url);
+
+import Store from "electron-store";
+
 import {
   app,
   BrowserWindow,
@@ -5,23 +13,56 @@ import {
   Tray,
   Menu,
   screen,
+  shell,
   ipcMain,
   nativeTheme,
+  powerMonitor,
 } from "electron";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-import Store from "electron-store";
-import * as Updater from "electron-updater";
 
-type AppUpdater = import("electron-updater").AppUpdater;
+import type {
+  AppUpdater,
+  UpdateCheckResult,
+  ProgressInfo,
+  UpdateInfo,
+} from "electron-updater";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+const logsDir = path.join(app.getPath("userData"), "logs");
+const logFile = path.join(logsDir, "main.log");
+
+function logMain(...args: unknown[]) {
+  try {
+    if (!fs.existsSync(logsDir)) fs.mkdirSync(logsDir, { recursive: true });
+    const line =
+      new Date().toISOString() +
+      " " +
+      args
+        .map((a) => (typeof a === "string" ? a : JSON.stringify(a)))
+        .join(" ") +
+      "\n";
+    fs.appendFileSync(logFile, line);
+  } catch {}
+  // still mirror to console for dev
+  console.log(...args);
+}
+
+const updaterCfgPath = path.join(process.resourcesPath, "app-update.yml");
+
+logMain("[Updater] packaged =", app.isPackaged);
+logMain(
+  "[Updater] app-update.yml present =",
+  fs.existsSync(updaterCfgPath),
+  "path:",
+  updaterCfgPath
+);
 
 // ---- State ----
 let tray: Tray | null = null;
 let controlWin: BrowserWindow | null = null;
 let updater: AppUpdater | null = null;
+let updateTimer: NodeJS.Timeout | null = null;
 const overlayWins = new Map<number, BrowserWindow>(); // display.id -> BrowserWindow
 
 // ---- Store with defaults----
@@ -73,8 +114,14 @@ function logPathsOnce() {
 
 // Resolve autoUpdater no matter how the module is exposed
 function getAutoUpdater(): AppUpdater | null {
-  const m = Updater as any;
-  return m?.autoUpdater ?? m?.default?.autoUpdater ?? null;
+  try {
+    const mod = requireCJS("electron-updater"); // CJS load always works
+    const au = mod?.autoUpdater ?? mod?.default?.autoUpdater;
+    return au ?? null;
+  } catch (e) {
+    logMain("[Updater] load failed:", String(e));
+    return null;
+  }
 }
 
 // ---- Overlay management ----
@@ -169,12 +216,6 @@ function debugFlashOverlay() {
     } catch {}
   }
 }
-function debugOpenOverlayDevTools() {
-  for (const [, w] of overlayWins)
-    try {
-      w.webContents.openDevTools({ mode: "detach" });
-    } catch {}
-}
 
 let clickThrough = true;
 function debugToggleClickThrough() {
@@ -211,7 +252,7 @@ function buildTrayMenu() {
     { type: "separator" },
     { label: "Open controls", click: () => createControlWindow() },
     {
-      label: "Debug",
+      label: "Debug ▸",
       submenu: [
         { label: "Flash overlay", click: () => debugFlashOverlay() },
         {
@@ -225,14 +266,22 @@ function buildTrayMenu() {
         },
         {
           label: "Open overlay DevTools",
-          click: () => debugOpenOverlayDevTools(),
+          click: () =>
+            [...overlayWins.values()][0]?.webContents.openDevTools({
+              mode: "detach",
+            }),
         },
+        {
+          label: "Open control DevTools",
+          click: () => controlWin?.webContents.openDevTools({ mode: "detach" }),
+        },
+        { label: "Open logs folder", click: () => shell.openPath(logsDir) },
       ],
     },
     { type: "separator" },
     {
       label: "Check for updates…",
-      enabled: !!updater,
+      enabled: !!updater && app.isPackaged,
       click: () => updater?.checkForUpdatesAndNotify(),
     },
     { type: "separator" },
@@ -286,42 +335,59 @@ function createControlWindow() {
 // ---- Updates ----
 function setupAutoUpdater() {
   if (!app.isPackaged) {
-    console.log("[Updater] electron-updater running in dev");
-    return; // only in production
+    logMain("[Updater] electron-updater skipped; running in dev");
+    return; // only enable in packaged builds
   }
 
   updater = getAutoUpdater();
 
-  if (!updater) {
-    console.warn("[Updater] electron-updater not available");
-    return;
-  }
+  logMain("[Updater] resolved =", !!updater, "packaged =", app.isPackaged);
 
-  console.warn("[Updater] electron-updater available");
+  if (!updater) return;
+
+  // direct logs from electron-updater into our file logger
+  updater.logger = {
+    info: (...a: unknown[]) => logMain("[Updater][info]", ...a),
+    warn: (...a: unknown[]) => logMain("[Updater][warn]", ...a),
+    error: (...a: unknown[]) => logMain("[Updater][error]", ...a),
+    debug: (...a: unknown[]) => logMain("[Updater][debug]", ...a),
+  };
 
   // Allow betas if our app version has a prerelease tag (e.g. 1.2.0-beta.1)
   updater.allowPrerelease = /-/.test(app.getVersion());
   updater.autoDownload = true; // download when found
   updater.autoInstallOnAppQuit = true; // install on quit (or call quitAndInstall)
 
-  updater.on("error", (err) => {
-    console.error("[Updater] error:", err);
-  });
-
-  updater.on("update-available", (info) => {
-    console.log("[Updater] update available:", info.version);
+  // event telemetry
+  updater.on("checking-for-update", () =>
+    logMain("[Updater] checking-for-update")
+  );
+  updater.on("update-available", (i: UpdateInfo) => {
+    logMain("[Updater] update-available:", i.version, i.releaseDate ?? "");
     tray?.displayBalloon?.({
       title: "Warm N Dim",
       content: "Update available. Downloading…",
     });
   });
-
-  updater.on("download-progress", (p) => {
+  updater.on("update-not-available", (i: UpdateInfo) =>
+    logMain(
+      "[Updater] update-not-available; current =",
+      app.getVersion(),
+      "latest =",
+      i?.version
+    )
+  );
+  updater.on("error", (e: Error) => logMain("[Updater] error:", e.message));
+  updater.on("download-progress", (p: ProgressInfo) => {
+    logMain(
+      "[Updater] download-progress:",
+      `${p.percent.toFixed(0)}%`,
+      `${Math.round(p.bytesPerSecond / 1024)} KB/s`
+    );
     tray?.setToolTip?.(`Warm N Dim — downloading ${p.percent.toFixed(0)}%`);
   });
-
-  updater.on("update-downloaded", (info) => {
-    console.log("[Updater] update downloaded:", info.version);
+  updater.on("update-downloaded", (i: UpdateInfo) => {
+    logMain("[Updater] update-downloaded:", i.version);
     tray?.setToolTip?.("Warm N Dim");
     const res = dialog.showMessageBoxSync({
       type: "info",
@@ -329,17 +395,34 @@ function setupAutoUpdater() {
       defaultId: 0,
       cancelId: 1,
       title: "Update ready",
-      message: `Warm N Dim ${info.version} is ready to install.`,
+      message: `Warm N Dim ${i.version} is ready to install.`,
       detail: "Restart to apply the update.",
     });
     if (res === 0) updater!.quitAndInstall();
   });
+  // initial check (use checkForUpdates so we can log result)
+  updater
+    .checkForUpdates()
+    .then((res: UpdateCheckResult | null | undefined) => {
+      const v = res?.updateInfo?.version ?? "unknown";
+      logMain("[Updater] initial check result:", v);
+      // optional notify balloon
+      if (res?.updateInfo && res.updateInfo.version !== app.getVersion()) {
+        logMain("[Updater] newer version detected:", res.updateInfo.version);
+      }
+    })
+    .catch((err) => logMain("[Updater] initial check failed:", String(err)));
 
-  if (app.isPackaged) {
-    // initial check + notification balloon
-    updater.checkForUpdatesAndNotify();
-    // optional: periodic checks (every 6h)
-    setInterval(() => updater!.checkForUpdates(), 6 * 60 * 60 * 1000);
+  // periodic
+  if (!updateTimer) {
+    updateTimer = setInterval(() => {
+      updater!
+        .checkForUpdates()
+        .catch((err) =>
+          logMain("[Updater] periodic check failed:", String(err))
+        );
+    }, 6 * 60 * 60 * 1000); // periodic checks (every 6h)
+    updateTimer.unref(); // won’t keep the app alive
   }
 }
 
@@ -393,6 +476,12 @@ app.whenReady().then(() => {
   screen.on("display-added", refreshOverlays);
   screen.on("display-removed", refreshOverlays);
   screen.on("display-metrics-changed", refreshOverlays);
+});
+
+powerMonitor.on("resume", () => updater?.checkForUpdates().catch(() => {}));
+
+app.on("before-quit", () => {
+  if (updateTimer) clearInterval(updateTimer);
 });
 
 app.on("window-all-closed", () => {

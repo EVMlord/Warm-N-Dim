@@ -131,6 +131,6 @@ pnpm release
 
 ## License
 
-**MIT** — © Evmlord Dev. See `LICENSE`.
+**MIT** — © EVMlord. See `LICENSE`.
 
 ---
