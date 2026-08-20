@@ -40,4 +40,7 @@ contextBridge.exposeInMainWorld("api", {
 
   setHotkeyRecording: (recording: boolean) =>
     ipcRenderer.send("hotkeys:recording", recording),
+
+  fullscreenPromptChoice: (choice: FullscreenBehavior) =>
+    ipcRenderer.send("fullscreen:choice", choice),
 });

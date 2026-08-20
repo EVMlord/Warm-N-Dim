@@ -6,6 +6,7 @@ import {
   isExclusiveIsh,
   isFullscreenCover,
   QUNS,
+  SHELL_CLASS_NAMES,
   WS_CAPTION,
 } from "../src/lib/fullscreenMath.js";
 
@@ -29,9 +30,27 @@ describe("style / QUNS", () => {
     assert.equal(isBorderlessStyle(WS_CAPTION | 0x10000000), false);
     assert.equal(isBorderlessStyle(0x10000000), true);
   });
-  it("treats BUSY and D3D as exclusive-ish", () => {
-    assert.equal(isExclusiveIsh(QUNS.BUSY), true);
+  it("does not treat a zero style as borderless", () => {
+    assert.equal(isBorderlessStyle(0), false);
+  });
+  it("treats D3D and presentation as exclusive-ish, not BUSY", () => {
+    assert.equal(isExclusiveIsh(QUNS.BUSY), false);
     assert.equal(isExclusiveIsh(QUNS.RUNNING_D3D_FULL_SCREEN), true);
+    assert.equal(isExclusiveIsh(QUNS.PRESENTATION_MODE), true);
     assert.equal(isExclusiveIsh(QUNS.ACCEPTS_NOTIFICATIONS), false);
+  });
+});
+
+describe("shell classes", () => {
+  it("ignores Task View, Start/Search, and Game Bar hosts", () => {
+    for (const name of [
+      "MultitaskingViewFrame",
+      "Windows.UI.Core.CoreWindow",
+      "XamlExplorerHostIslandWindow",
+      "ForegroundStaging",
+      "GameBar",
+    ]) {
+      assert.ok(SHELL_CLASS_NAMES.has(name), name);
+    }
   });
 });

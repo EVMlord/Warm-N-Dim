@@ -31,6 +31,8 @@ export function coverageRatio(win: Rect, display: Rect): number {
 }
 
 export function isBorderlessStyle(style: number): boolean {
+  // GetWindowLongPtrW returns 0 on failure; do not treat that as caption-less.
+  if (style === 0) return false;
   return (style & WS_CAPTION) === 0;
 }
 
@@ -44,7 +46,6 @@ export function isFullscreenCover(
 
 export function isExclusiveIsh(quns: number): boolean {
   return (
-    quns === QUNS.BUSY ||
     quns === QUNS.RUNNING_D3D_FULL_SCREEN ||
     quns === QUNS.PRESENTATION_MODE
   );
@@ -56,4 +57,17 @@ export const SHELL_CLASS_NAMES = new Set([
   "Shell_TrayWnd",
   "Shell_SecondaryTrayWnd",
   "NotifyIconOverflowWindow",
+  "MultitaskingViewFrame",
+  "TaskSwitcherWnd",
+  "XamlExplorerHostIslandWindow",
+  "Windows.UI.Core.CoreWindow",
+  "Windows.Internal.Shell.TabProxyWindow",
+  "Windows.UI.Composition.DesktopWindowContentBridge",
+  "ForegroundStaging",
+  "Xaml_WindowedPopupClass",
+  "Shell_InputSwitchTopLevelWindow",
+  "TopLevelWindowForOverflowXamlIsland",
+  "GameBar",
+  "XboxGameBarUIHost",
+  "WidgetBoardWindow",
 ]);
