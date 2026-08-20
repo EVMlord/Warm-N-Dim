@@ -18,6 +18,7 @@
 - Overlay z-order is re-asserted every 2s in always-on-top mode (Windows often steals it).
 - Installer `afterPack` now strips SwiftShader (no software GL fallback).
 - `package.json` license field is MIT (matches `LICENSE`).
+- GitHub Actions **Release** workflow builds the Windows installer and publishes the GitHub release (run from the Actions tab).
 
 ### Fixed
 

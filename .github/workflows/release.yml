@@ -1,0 +1,139 @@
+# Build the Windows installer and publish a GitHub Release.
+# Signing is not configured yet (unsigned builds are expected).
+#
+# Actions tab → Release → Run workflow. Pick the branch that has the
+# version you want to ship (dev for betas, main for stable).
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      draft:
+        description: "Create a draft instead of publishing (assets stay private until you publish)"
+        type: boolean
+        default: false
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: windows-latest
+    permissions:
+      contents: write
+    env:
+      CSC_IDENTITY_AUTO_DISCOVERY: "false"
+      USE_HARD_LINKS: "false"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Test
+        run: pnpm test
+
+      - name: Read version
+        id: meta
+        shell: pwsh
+        run: |
+          $pkg = Get-Content package.json -Raw | ConvertFrom-Json
+          $version = [string]$pkg.version
+          $prerelease = if ($version -match '-') { "true" } else { "false" }
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "version=$version" -Encoding utf8NoBOM
+          Add-Content -Path $env:GITHUB_OUTPUT -Value "prerelease=$prerelease" -Encoding utf8NoBOM
+          Write-Host "version=$version prerelease=$prerelease"
+
+      - name: Ensure git tag points at this commit
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          $tag = "v${{ steps.meta.outputs.version }}"
+          $refJson = gh api "repos/$env:GITHUB_REPOSITORY/git/ref/tags/$tag" 2>$null
+          if ($LASTEXITCODE -eq 0) {
+            $ref = $refJson | ConvertFrom-Json
+            $sha = $ref.object.sha
+            if ($ref.object.type -eq "tag") {
+              $tagObj = gh api "repos/$env:GITHUB_REPOSITORY/git/tags/$sha" | ConvertFrom-Json
+              $sha = $tagObj.object.sha
+            }
+            if ($sha -ne $env:GITHUB_SHA) {
+              throw "Tag $tag points at $sha, but this run is $env:GITHUB_SHA. Delete the tag or run from that commit."
+            }
+            Write-Host "Tag $tag already points at this commit"
+          } else {
+            git tag $tag
+            git push origin $tag
+            Write-Host "Created tag $tag at $env:GITHUB_SHA"
+          }
+
+      - name: Cache electron-builder downloads
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/AppData/Local/electron-builder/Cache
+            ~/AppData/Local/electron/Cache
+          key: ${{ runner.os }}-electron-builder-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-electron-builder-
+
+      - name: Build and publish
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EP_PRE_RELEASE: ${{ steps.meta.outputs.prerelease }}
+          EP_DRAFT: ${{ inputs.draft && 'true' || 'false' }}
+        run: pnpm release
+
+      - name: Attach changelog to the GitHub release
+        if: success()
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $version = "${{ steps.meta.outputs.version }}"
+          $tag = "v$version"
+          $changelog = Get-Content CHANGELOG.md -Raw
+          $pattern = "(?ms)^## \[$([regex]::Escape($version))\].*?(?=^## \[|\z)"
+          if ($changelog -match $pattern) {
+            $notes = $Matches[0].Trim()
+          } else {
+            $notes = "Warm N Dim $version"
+          }
+          $notes = @"
+$notes
+
+---
+
+Download **WarmNDim-Setup-$version.exe**. Windows SmartScreen may show “Windows protected your PC” because this build is unsigned. Click **More info** → **Run anyway**.
+"@
+          $notesPath = Join-Path $pwd "release-notes.md"
+          Set-Content -Path $notesPath -Value $notes.Trim() -Encoding utf8NoBOM
+          gh release edit $tag --notes-file $notesPath
+
+      - name: Upload installer artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: WarmNDim-Setup-${{ steps.meta.outputs.version }}
+          path: |
+            release/WarmNDim-Setup-*.exe
+            release/WarmNDim-Setup-*.exe.blockmap
+            release/latest.yml
+          if-no-files-found: warn
+          retention-days: 14

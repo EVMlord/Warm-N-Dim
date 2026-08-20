@@ -19,7 +19,12 @@ A tiny Windows utility that overlays a warm tint and an extra-dim black layer on
 
 ## Quick start (users)
 
-1. Download and run the installer.
+- **Stable:** [latest installer](https://github.com/EVMlord/Warm-N-Dim/releases/latest)
+- **Beta:** [0.4.0-beta.1](https://github.com/EVMlord/Warm-N-Dim/releases/tag/v0.4.0-beta.1) — after install, turn on **Include beta updates** (tray or Controls → Updates) if you want later betas
+
+Windows SmartScreen may show “Windows protected your PC” (unsigned installer). Click **More info** → **Run anyway**. That is expected for new hashes.
+
+1. Run the installer.
 2. Find **Warm N Dim** in your system tray.
 3. Click **Open controls** (or press **Ctrl+Alt+Shift+W**) and adjust **Warmth** and **Dim**.
 4. (Optional) Tick **Launch at startup**, set a schedule, or pick how fullscreen apps are handled.
@@ -81,11 +86,13 @@ src/
     globals.d.ts           # ambient types (Settings, window.api)
 icons/
   icon.ico
+.github/workflows/
+  release.yml             # Windows installer + GitHub Release (Actions tab)
 docs/
-  SIGNING.md              # unsigned vs OV/EV, GH_TOKEN, beta vs stable
+  SIGNING.md              # how to ship, channels, SmartScreen, signing later
 scripts/
   afterPack.cjs           # strip extra locales, PDF viewer, SwiftShader
-  release.cjs             # loads .env then builds & publishes
+  release.cjs             # build + electron-builder --publish always
 ```
 
 ### Build configuration
@@ -98,26 +105,14 @@ scripts/
 
 ---
 
-## Environment variables (.env)
+## Releasing
 
-Create a local `.env` (never commit it) for releases/signing:
+Installers are built and published by the **Release** GitHub Action (Windows), not from a laptop.
 
-```ini
-# GitHub token for publishing releases (repo scope)
-GH_TOKEN=ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+1. Push the branch that has the version you want (`dev` for a hyphenated beta, `main` for stable).
+2. Actions → **Release** → **Run workflow** on that branch.
 
-# Optional Windows code signing (OV .pfx file)
-CSC_LINK=file:///C:/secure/certs/evmlord-code-signing.p12
-CSC_KEY_PASSWORD=your_password
-```
-
-> Use **Option A (PFX)** for OV certs. For EV hardware tokens, set `certificateSubjectName` in `package.json → build.win` instead of using `CSC_*`.
-
-**Release command** (loads `.env`):
-
-```bash
-pnpm release
-```
+Hyphenated versions (`0.4.0-beta.1`) publish as GitHub **Pre-release**. Versions without a hyphen publish as **Latest**. Details, local fallback (`pnpm release` + `.env`), and signing notes: [docs/SIGNING.md](docs/SIGNING.md).
 
 ---
 
@@ -128,12 +123,12 @@ pnpm release
 - Tray menu includes **Check for updates…** and **Include beta updates**.
 - Controls → **Updates** picks **Stable** or **Beta**. Beta follows GitHub prereleases (`0.4.0-beta.1`, etc.). After publishing a hyphenated version, confirm the GitHub release is marked **Pre-release**.
 
-Code signing is optional. See [docs/SIGNING.md](docs/SIGNING.md).
+The installer is unsigned until a certificate is configured. See [docs/SIGNING.md](docs/SIGNING.md).
 
 **Publish config** (in `package.json → build.publish`):
 
 ```json
-[{ "provider": "github", "owner": "evmlord", "repo": "warm-n-dim" }]
+[{ "provider": "github", "owner": "evmlord", "repo": "Warm-N-Dim", "releaseType": "release" }]
 ```
 
 ---
