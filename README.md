@@ -10,7 +10,7 @@ A tiny Windows utility that overlays a warm tint and an extra-dim black layer on
 - **Multi‑monitor** support (one overlay per display)
 - **Global hotkeys** (toggle, open controls, optional warmth/dim bumps)
 - **Schedule** — fixed hours or local sunset→sunrise (offline city list)
-- **Fullscreen** — ask, hide overlay, or always stay on top
+- **Fullscreen** — hide overlay (default), ask after, or always stay on top
 - Tray controls, **Launch at startup**, **Debug → Flash overlay**
 - **Settings persist** between restarts
 - **Auto‑update** via GitHub Releases, optional **beta** channel
@@ -22,7 +22,7 @@ A tiny Windows utility that overlays a warm tint and an extra-dim black layer on
 ## Quick start (users)
 
 - **Stable:** [latest installer](https://github.com/EVMlord/Warm-N-Dim/releases/latest)
-- **Beta:** [0.4.0-beta.1](https://github.com/EVMlord/Warm-N-Dim/releases/tag/v0.4.0-beta.1) — after install, turn on **Include beta updates** (tray or Controls → Updates) if you want later betas
+- **Beta:** [0.4.0-beta.2](https://github.com/EVMlord/Warm-N-Dim/releases/tag/v0.4.0-beta.2) — after install, turn on **Include beta updates** (tray or Controls → Updates) if you want later betas
 
 Windows SmartScreen may show “Windows protected your PC” (unsigned installer). Click **More info** → **Run anyway**. That is expected for new hashes.
 
@@ -50,8 +50,8 @@ This reduces perceived brightness and blue light without changing physical backl
 
 Windows often steals z-order from always-on-top windows. Overlay → **Fullscreen apps** lets you choose:
 
-- **Ask each time** (default) — prompt when a fullscreen app is detected
-- **Hide overlay** — hide until that app exits (better for games)
+- **Hide overlay** (default) — hide until that app exits (better for games)
+- **Ask after fullscreen** — hide during the session, then show a Warm N Dim prompt once you are back
 - **Always stay on top** — keep the overlay and re-assert z-order every couple of seconds
 
 Sunset/sunrise is computed **locally** (`suncalc` + a shipped city list). No geolocation or extra network calls.

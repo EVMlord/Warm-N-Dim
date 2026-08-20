@@ -61,6 +61,7 @@ declare global {
       getAppVersion: () => Promise<string>;
       checkForUpdates: () => void;
       setHotkeyRecording: (recording: boolean) => void;
+      fullscreenPromptChoice: (choice: FullscreenBehavior) => void;
     };
   }
 }

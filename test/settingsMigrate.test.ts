@@ -14,7 +14,7 @@ describe("migrate", () => {
     assert.equal(s.warmth, 70);
     assert.equal(s.dim, 10);
     assert.equal(s.autolaunch, true);
-    assert.equal(s.fullscreenBehavior, "ask");
+    assert.equal(s.fullscreenBehavior, "hide");
     assert.equal(s.updateChannel, "stable");
     assert.equal(s.hotkeys.toggle, defaults.hotkeys.toggle);
     assert.equal(s.schedule.mode, "fixed");
@@ -29,5 +29,10 @@ describe("migrate", () => {
   it("keeps a valid fullscreen behavior", () => {
     const s = migrate({ fullscreenBehavior: "always-on-top" });
     assert.equal(s.fullscreenBehavior, "always-on-top");
+  });
+
+  it("preserves stored ask behavior", () => {
+    const s = migrate({ fullscreenBehavior: "ask" });
+    assert.equal(s.fullscreenBehavior, "ask");
   });
 });

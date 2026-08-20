@@ -164,7 +164,7 @@ app.whenReady().then(() => {
   initOverlays(__dirname, getOverlaySettings);
   initControls(__dirname, controlPayload);
   initSchedule(broadcastAll);
-  initFullscreen(broadcastAll);
+  initFullscreen(__dirname, broadcastAll);
   initHotkeys({
     toggle: toggleEnabled,
     openControls: createControlWindow,

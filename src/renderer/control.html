@@ -51,14 +51,15 @@
       <label class="field">
         <span>Fullscreen apps</span>
         <select id="fullscreenBehavior">
-          <option value="ask">Ask each time</option>
           <option value="hide">Hide overlay</option>
+          <option value="ask">Ask after fullscreen</option>
           <option value="always-on-top">Always stay on top</option>
         </select>
       </label>
       <p class="hint">
-        Always on top can lose z-order on Windows; the app re-asserts it. Hide
-        is better for games. Ask prompts once per fullscreen session.
+        Hide is better for games (the default). Always on top can lose z-order
+        on Windows; the app re-asserts it. Ask hides during fullscreen, then
+        shows a Warm N Dim prompt once you are back.
       </p>
 
       <label class="checkbox-row" id="borderlessRow">

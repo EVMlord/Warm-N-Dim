@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## [0.4.0-beta.2] – 2026‑08‑20
+
+### Changed
+
+- Fullscreen default is **Hide overlay**. **Ask after fullscreen** hides during the session, then shows a branded Warm N Dim window once you are back (no native Windows dialog).
+- Fullscreen detection no longer treats lock screen / screensaver (`QUNS_BUSY`) as a game.
+
 ## [0.4.0-beta.1] – 2026‑08‑19
 
 ### Added

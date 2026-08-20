@@ -1,5 +1,6 @@
+import path from "node:path";
 import { createRequire } from "node:module";
-import { BrowserWindow, dialog, screen } from "electron";
+import { BrowserWindow, ipcMain, screen } from "electron";
 import { logMain } from "./log.js";
 import { getSettings, patchSettings } from "./settings.js";
 import {
@@ -31,14 +32,28 @@ let ffi: Ffi | null = null;
 let ffiFailed = false;
 let pollTimer: NodeJS.Timeout | null = null;
 let asking = false;
-let sessionDecision: "hide" | "keep" | null = null;
 let lastHadFullscreen = false;
+let hidThisSession = false;
 let notify: () => void = () => {};
+let dirname = "";
+let promptWin: BrowserWindow | null = null;
 
 const GWL_STYLE = -16;
 
-export function initFullscreen(onChange: () => void): void {
+export function initFullscreen(appDir: string, onChange: () => void): void {
+  dirname = appDir;
   notify = onChange;
+  ipcMain.on("fullscreen:choice", (_e, choice: unknown) => {
+    applyPromptChoice(choice);
+  });
+}
+
+function trayIcon(): string {
+  return path.join(dirname, "icons", "icon.ico");
+}
+
+function preloadPath(): string {
+  return path.join(dirname, "preload.js");
 }
 
 function handleToBigInt(buf: Buffer): bigint {
@@ -46,23 +61,29 @@ function handleToBigInt(buf: Buffer): bigint {
   return BigInt(buf.readUInt32LE(0));
 }
 
+function getPromptNativeHandle(): Buffer | null {
+  try {
+    if (promptWin && !promptWin.isDestroyed())
+      return promptWin.getNativeWindowHandle();
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
 function ourAddresses(): Set<string> {
   const set = new Set<string>();
-  for (const buf of getOverlayNativeHandles()) {
+  const add = (buf: Buffer | null): void => {
+    if (!buf) return;
     try {
       set.add(handleToBigInt(buf).toString());
     } catch {
       // ignore
     }
-  }
-  const ctrl = getControlNativeHandle();
-  if (ctrl) {
-    try {
-      set.add(handleToBigInt(ctrl).toString());
-    } catch {
-      // ignore
-    }
-  }
+  };
+  for (const buf of getOverlayNativeHandles()) add(buf);
+  add(getControlNativeHandle());
+  add(getPromptNativeHandle());
   return set;
 }
 
@@ -74,10 +95,12 @@ function loadFfi(): Ffi | null {
       load: (name: string) => { func: (sig: string) => CallableFunction };
       struct: (name: string, fields: Record<string, string>) => unknown;
       encode: (type: unknown, value: unknown) => unknown;
-      decode: (type: unknown, value: unknown) => unknown;
+      decode: ((value: unknown, type: unknown, length?: number) => unknown) & {
+        int: (ptr: unknown) => number;
+        string16: (ptr: unknown, length?: number) => string;
+      };
       address: (ptr: unknown) => number | bigint;
       alloc: (type: string, length?: number) => unknown;
-      decodeString: (buf: unknown, encoding: string) => string;
     };
     const user32 = koffi.load("user32.dll");
     const shell32 = koffi.load("shell32.dll");
@@ -97,7 +120,7 @@ function loadFfi(): Ffi | null {
       "int64 __stdcall GetWindowLongPtrW(void* hWnd, int nIndex)"
     ) as (hwnd: unknown, n: number) => number | bigint;
     const GetClassNameW = user32.func(
-      "int __stdcall GetClassNameW(void* hWnd, _Out_ uint16 *lpClassName, int nMaxCount)"
+      "int __stdcall GetClassNameW(void* hWnd, _Out_ char16 *lpClassName, int nMaxCount)"
     ) as (hwnd: unknown, buf: unknown, n: number) => number;
     const SHQueryUserNotificationState = shell32.func(
       "int __stdcall SHQueryUserNotificationState(_Out_ int *pquns)"
@@ -119,19 +142,23 @@ function loadFfi(): Ffi | null {
       GetWindowLongPtrW,
       GetClassNameW: (hwnd) => {
         try {
-          const array = new Uint16Array(256);
-          const n = GetClassNameW(hwnd, array, 256);
+          const buf = koffi.alloc("char16", 256);
+          const n = GetClassNameW(hwnd, buf, 256);
           if (!n || n <= 0) return "";
-          return String.fromCharCode(...array.subarray(0, n));
+          return koffi.decode.string16(buf, n) || "";
         } catch {
           return "";
         }
       },
       SHQueryUserNotificationState: () => {
-        const out = [0];
-        const hr = SHQueryUserNotificationState(out);
-        if (hr !== 0) return 0;
-        return Number(out[0]) || 0;
+        try {
+          const out = koffi.alloc("int", 1);
+          const hr = SHQueryUserNotificationState(out);
+          if (hr !== 0) return 0;
+          return koffi.decode.int(out) || 0;
+        } catch {
+          return 0;
+        }
       },
       address: (ptr) => BigInt(koffi.address(ptr)),
     };
@@ -266,62 +293,73 @@ export function probeFullscreen(): ProbeResult {
   };
 }
 
-async function maybeAsk(): Promise<"hide" | "keep"> {
-  asking = true;
-  const parent = new BrowserWindow({
-    width: 440,
-    height: 180,
-    alwaysOnTop: true,
-    skipTaskbar: true,
-    autoHideMenuBar: true,
-    title: "Warm N Dim",
-    show: true,
-  });
-  parent.setAlwaysOnTop(true, "screen-saver");
+function closePrompt(): void {
   try {
-    const res = await dialog.showMessageBox(parent, {
-      type: "question",
-      buttons: [
-        "Hide this time",
-        "Keep overlay this time",
-        "Always hide in fullscreen",
-        "Always stay on top",
-      ],
-      defaultId: 0,
-      cancelId: 1,
-      title: "Fullscreen app detected",
-      message: "A fullscreen app is covering the screen.",
-      detail:
-        "The overlay sits on top of fullscreen apps and games, which can look wrong. Hide it until that app exits?",
-    });
-    if (res.response === 2) {
-      patchSettings({ fullscreenBehavior: "hide" });
-      notify();
-      return "hide";
-    }
-    if (res.response === 3) {
-      patchSettings({ fullscreenBehavior: "always-on-top" });
-      notify();
-      return "keep";
-    }
-    return res.response === 0 ? "hide" : "keep";
-  } finally {
-    asking = false;
-    try {
-      if (!parent.isDestroyed()) parent.close();
-    } catch {
-      // ignore
-    }
+    if (promptWin && !promptWin.isDestroyed()) promptWin.close();
+  } catch {
+    // ignore
   }
+  promptWin = null;
 }
 
-async function tick(): Promise<void> {
+function applyPromptChoice(choice: unknown): void {
+  if (choice === "hide" || choice === "always-on-top") {
+    patchSettings({ fullscreenBehavior: choice });
+    notify();
+  }
+  asking = false;
+  closePrompt();
+}
+
+function showPostSessionPrompt(): void {
+  if (asking) return;
+  if (promptWin && !promptWin.isDestroyed()) {
+    asking = true;
+    promptWin.show();
+    promptWin.focus();
+    return;
+  }
+
+  asking = true;
+  promptWin = new BrowserWindow({
+    width: 440,
+    height: 440,
+    resizable: false,
+    minimizable: false,
+    maximizable: false,
+    alwaysOnTop: true,
+    skipTaskbar: false,
+    autoHideMenuBar: true,
+    title: "Warm N Dim",
+    icon: trayIcon(),
+    show: false,
+    backgroundColor: "#1b1b1b",
+    webPreferences: {
+      preload: preloadPath(),
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+  promptWin.setMenuBarVisibility(false);
+  promptWin.loadFile(path.join(dirname, "renderer", "fullscreenPrompt.html"));
+  promptWin.once("ready-to-show", () => {
+    if (!promptWin || promptWin.isDestroyed()) return;
+    promptWin.show();
+    promptWin.focus();
+  });
+  promptWin.on("closed", () => {
+    promptWin = null;
+    asking = false;
+  });
+}
+
+function tick(): void {
   if (asking) return;
   const s = getSettings();
   if (s.fullscreenBehavior === "always-on-top") {
     applyFullscreenHides("none");
     lastHadFullscreen = false;
-    sessionDecision = null;
+    hidThisSession = false;
     return;
   }
 
@@ -332,8 +370,11 @@ async function tick(): Promise<void> {
 
   if (!has) {
     applyFullscreenHides("none");
+    const leftAskSession =
+      s.fullscreenBehavior === "ask" && lastHadFullscreen && hidThisSession;
     lastHadFullscreen = false;
-    sessionDecision = null;
+    hidThisSession = false;
+    if (leftAskSession && s.enabled) showPostSessionPrompt();
     return;
   }
 
@@ -342,19 +383,9 @@ async function tick(): Promise<void> {
     return new Set(probe.wouldHide);
   };
 
-  if (s.fullscreenBehavior === "hide") {
-    applyFullscreenHides(toHidden());
-    lastHadFullscreen = true;
-    return;
-  }
-
-  // ask
-  if (!lastHadFullscreen && sessionDecision == null) {
-    lastHadFullscreen = true;
-    sessionDecision = await maybeAsk();
-  }
-  if (sessionDecision === "hide") applyFullscreenHides(toHidden());
-  else applyFullscreenHides("none");
+  applyFullscreenHides(toHidden());
+  lastHadFullscreen = true;
+  if (s.fullscreenBehavior === "ask") hidThisSession = true;
 }
 
 export function startFullscreenWatch(): void {
@@ -362,7 +393,11 @@ export function startFullscreenWatch(): void {
   loadFfi();
   if (pollTimer) return;
   pollTimer = setInterval(() => {
-    tick().catch((e) => logMain("[Fullscreen] tick failed", String(e)));
+    try {
+      tick();
+    } catch (e) {
+      logMain("[Fullscreen] tick failed", String(e));
+    }
   }, 750);
   pollTimer.unref();
 }
@@ -372,6 +407,8 @@ export function stopFullscreenWatch(): void {
     clearInterval(pollTimer);
     pollTimer = null;
   }
+  asking = false;
+  closePrompt();
 }
 
 export function logFullscreenProbe(): void {

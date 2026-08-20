@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' file:;"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+    <title>Warm N Dim</title>
+  </head>
+  <body class="prompt-body">
+    <div class="prompt-brand">
+      <img class="prompt-logo" src="../icons/icon.ico" alt="" width="32" height="32" />
+      <div>
+        <h1>Warm N Dim</h1>
+        <p class="prompt-tag">Blue-light filter + dim overlay</p>
+      </div>
+    </div>
+
+    <h2>Overlay hidden during fullscreen</h2>
+    <p>
+      Warm N Dim hid the overlay while a fullscreen app was open. The tint sits
+      on top of games and fullscreen apps, which can look wrong.
+    </p>
+    <p>What should we do next time?</p>
+
+    <div class="prompt-actions">
+      <button type="button" id="choice-hide" class="prompt-btn primary">
+        Always hide in fullscreen
+      </button>
+      <button type="button" id="choice-top" class="prompt-btn">
+        Always stay on top
+      </button>
+      <button type="button" id="choice-ask" class="prompt-btn">
+        Keep asking
+      </button>
+    </div>
+
+    <script src="./fullscreenPrompt.js"></script>
+  </body>
+</html>

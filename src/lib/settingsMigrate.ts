@@ -23,7 +23,7 @@ export const defaults: Settings = {
     city: null,
     fadeMinutes: 0,
   },
-  fullscreenBehavior: "ask",
+  fullscreenBehavior: "hide",
   hideOnBorderlessFullscreen: true,
   updateChannel: "stable",
 };

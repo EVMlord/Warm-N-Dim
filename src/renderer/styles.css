@@ -164,3 +164,80 @@ footer {
   margin-top: 10px;
   opacity: 0.7;
 }
+
+/* Post-session fullscreen prompt */
+.prompt-body {
+  margin: 0;
+  padding: 16px 18px 18px;
+  background: #1b1b1b;
+  color: #eee;
+  user-select: none;
+  border-top: 3px solid #e08a3c;
+  box-sizing: border-box;
+  min-height: 100vh;
+}
+.prompt-brand {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.prompt-logo {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 6px;
+}
+.prompt-brand h1 {
+  font-size: 16px;
+  margin: 0;
+  color: #fff;
+}
+.prompt-tag {
+  margin: 2px 0 0;
+  font-size: 11px;
+  opacity: 0.65;
+}
+.prompt-body h2 {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 8px;
+  color: #fff;
+}
+.prompt-body p {
+  margin: 0 0 8px;
+  font-size: 13px;
+  line-height: 1.4;
+  opacity: 0.88;
+}
+.prompt-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+}
+.prompt-btn {
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #444;
+  background: #222;
+  color: #fff;
+  cursor: pointer;
+  font-size: 13px;
+  text-align: left;
+}
+.prompt-btn:hover {
+  border-color: #666;
+  background: #2a2a2a;
+}
+.prompt-btn.primary {
+  background: #e08a3c;
+  border-color: #e08a3c;
+  color: #1b1b1b;
+  font-weight: 600;
+}
+.prompt-btn.primary:hover {
+  background: #eba05a;
+  border-color: #eba05a;
+}
