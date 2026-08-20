@@ -15,9 +15,11 @@ module.exports = async function afterPack(ctx) {
     // locales folder may not exist in some builds
   }
 
-  // 2) Remove SwiftShader software GL fallback
-  //    Cuts ~7–10 MB but on rare systems without GPU you lose rendering.
-  // await fs.rm(path.join(appDir, 'swiftshader'), { recursive: true, force: true });
+  // 2) Remove SwiftShader software GL fallback (~7–10 MB).
+  //    GPU-less VMs will not get a software rasterizer.
+  await fs.rm(path.join(appDir, "swiftshader"), { recursive: true, force: true });
+  await fs.rm(path.join(appDir, "vk_swiftshader.dll"), { force: true });
+  await fs.rm(path.join(appDir, "vk_swiftshader_icd.json"), { force: true });
 
   // 3) Remove PDF viewer
   await fs.rm(path.join(appDir, "pdf_viewer_resources.pak"), { force: true });

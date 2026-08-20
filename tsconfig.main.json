@@ -4,10 +4,13 @@
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
     "outDir": "dist",
+    "rootDir": "src",
     "strict": true,
     "skipLibCheck": true,
     "types": ["node"],
-    "lib": ["ES2022", "DOM"]
+    "lib": ["ES2022", "DOM"],
+    "noUnusedLocals": true,
+    "noUnusedParameters": true
   },
-  "include": ["src/main.ts", "src/types/**/*.d.ts"]
+  "include": ["src/main.ts", "src/lib/**/*.ts", "src/types/**/*.d.ts"]
 }

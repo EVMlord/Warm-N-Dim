@@ -12,26 +12,168 @@
   <body class="control-body">
     <header>
       <h1>Warm N Dim</h1>
-      <button id="toggle">Toggle</button>
+      <button id="toggle" type="button">Disable</button>
     </header>
 
-    <section class="slider">
-      <label for="warmth">Warmth</label>
-      <input id="warmth" type="range" min="0" max="100" value="40" />
-      <output id="warmthOut">40</output>
-    </section>
+    <nav class="tabs" role="tablist">
+      <button type="button" class="tab" role="tab" data-tab="overlay" aria-selected="true">
+        Overlay
+      </button>
+      <button type="button" class="tab" role="tab" data-tab="schedule" aria-selected="false">
+        Schedule
+      </button>
+      <button type="button" class="tab" role="tab" data-tab="hotkeys" aria-selected="false">
+        Hotkeys
+      </button>
+      <button type="button" class="tab" role="tab" data-tab="updates" aria-selected="false">
+        Updates
+      </button>
+    </nav>
 
-    <section class="slider">
-      <label for="dim">Dim</label>
-      <input id="dim" type="range" min="0" max="100" value="20" />
-      <output id="dimOut">20</output>
-    </section>
+    <section id="tab-overlay" class="tab-panel" role="tabpanel">
+      <div class="slider">
+        <label for="warmth">Warmth</label>
+        <input id="warmth" type="range" min="0" max="100" value="40" />
+        <output id="warmthOut">40</output>
+      </div>
 
-    <section class="row">
+      <div class="slider">
+        <label for="dim">Dim</label>
+        <input id="dim" type="range" min="0" max="100" value="20" />
+        <output id="dimOut">20</output>
+      </div>
+
       <label class="checkbox-row">
         <input type="checkbox" id="autolaunch" />
         Launch at startup
       </label>
+
+      <label class="field">
+        <span>Fullscreen apps</span>
+        <select id="fullscreenBehavior">
+          <option value="ask">Ask each time</option>
+          <option value="hide">Hide overlay</option>
+          <option value="always-on-top">Always stay on top</option>
+        </select>
+      </label>
+      <p class="hint">
+        Always on top can lose z-order on Windows; the app re-asserts it. Hide
+        is better for games. Ask prompts once per fullscreen session.
+      </p>
+
+      <label class="checkbox-row" id="borderlessRow">
+        <input type="checkbox" id="hideOnBorderless" />
+        Also hide for borderless / F11 fullscreen
+      </label>
+    </section>
+
+    <section id="tab-schedule" class="tab-panel hidden" role="tabpanel">
+      <label class="checkbox-row">
+        <input type="checkbox" id="scheduleEnabled" />
+        Enable schedule
+      </label>
+
+      <label class="field">
+        <span>Mode</span>
+        <select id="scheduleMode">
+          <option value="fixed">Fixed hours</option>
+          <option value="sunset">Sunset to sunrise</option>
+        </select>
+      </label>
+
+      <div class="row-2" id="fixedTimes">
+        <label class="field">
+          <span>Turn on</span>
+          <input id="scheduleStart" type="time" />
+        </label>
+        <label class="field">
+          <span>Turn off</span>
+          <input id="scheduleEnd" type="time" />
+        </label>
+      </div>
+
+      <div id="sunsetFields" class="hidden">
+        <label class="field">
+          <span>City preset (offline)</span>
+          <select id="city">
+            <option value="">Custom / none</option>
+          </select>
+        </label>
+        <div class="row-2">
+          <label class="field">
+            <span>Latitude</span>
+            <input id="latitude" type="number" step="0.0001" min="-90" max="90" />
+          </label>
+          <label class="field">
+            <span>Longitude</span>
+            <input
+              id="longitude"
+              type="number"
+              step="0.0001"
+              min="-180"
+              max="180"
+            />
+          </label>
+        </div>
+      </div>
+
+      <div class="slider">
+        <label for="fadeMinutes">Fade (min)</label>
+        <input id="fadeMinutes" type="range" min="0" max="60" value="0" />
+        <output id="fadeOut">0</output>
+      </div>
+      <p class="hint" id="scheduleHint">Schedule is off</p>
+    </section>
+
+    <section id="tab-hotkeys" class="tab-panel hidden" role="tabpanel">
+      <p class="hint">
+        Click a field, then press a shortcut (needs Ctrl, Alt, or Shift). Esc
+        cancels, Backspace clears. Shortcuts do not work inside exclusive
+        fullscreen games.
+      </p>
+      <label class="hotkey-row">
+        <span>Toggle overlay</span>
+        <input id="hk-toggle" class="hotkey" type="text" readonly />
+      </label>
+      <p class="error" id="err-toggle"></p>
+      <label class="hotkey-row">
+        <span>Open controls</span>
+        <input id="hk-openControls" class="hotkey" type="text" readonly />
+      </label>
+      <p class="error" id="err-openControls"></p>
+      <label class="hotkey-row">
+        <span>Dim up</span>
+        <input id="hk-dimUp" class="hotkey" type="text" readonly />
+      </label>
+      <p class="error" id="err-dimUp"></p>
+      <label class="hotkey-row">
+        <span>Dim down</span>
+        <input id="hk-dimDown" class="hotkey" type="text" readonly />
+      </label>
+      <p class="error" id="err-dimDown"></p>
+      <label class="hotkey-row">
+        <span>Warmth up</span>
+        <input id="hk-warmthUp" class="hotkey" type="text" readonly />
+      </label>
+      <p class="error" id="err-warmthUp"></p>
+      <label class="hotkey-row">
+        <span>Warmth down</span>
+        <input id="hk-warmthDown" class="hotkey" type="text" readonly />
+      </label>
+      <p class="error" id="err-warmthDown"></p>
+    </section>
+
+    <section id="tab-updates" class="tab-panel hidden" role="tabpanel">
+      <p>Version <strong id="appVersion">…</strong></p>
+      <label class="field">
+        <span>Update channel</span>
+        <select id="updateChannel">
+          <option value="stable">Stable</option>
+          <option value="beta">Beta (prereleases)</option>
+        </select>
+      </label>
+      <button id="checkUpdates" type="button">Check for updates</button>
+      <p class="hint" id="updateStatus"></p>
     </section>
 
     <footer>

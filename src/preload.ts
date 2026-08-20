@@ -1,7 +1,6 @@
 import { contextBridge, ipcRenderer } from "electron";
 
-// Narrow unknown -> Settings at runtime
-function isSettings(v: unknown): v is Settings {
+function isSettings(v: unknown): v is UiPayload {
   if (!v || typeof v !== "object") return false;
   const o = v as Record<string, unknown>;
   return (
@@ -18,7 +17,7 @@ contextBridge.exposeInMainWorld("api", {
 
   toggleOverlay: () => ipcRenderer.send("overlay:toggle"),
 
-  onApply: (handler: (s: Settings) => void) =>
+  onApply: (handler: (s: UiPayload) => void) =>
     ipcRenderer.on("apply", (_e, data: unknown) => {
       if (isSettings(data)) handler(data);
       else console.warn("[WarmNDim] Invalid settings payload:", data);
@@ -32,4 +31,13 @@ contextBridge.exposeInMainWorld("api", {
 
   onDebugFlash: (handler: () => void) =>
     ipcRenderer.on("debug:flash", () => handler()),
+
+  getCities: (): Promise<City[]> => ipcRenderer.invoke("cities:list"),
+
+  getAppVersion: (): Promise<string> => ipcRenderer.invoke("app:version"),
+
+  checkForUpdates: () => ipcRenderer.send("updates:check"),
+
+  setHotkeyRecording: (recording: boolean) =>
+    ipcRenderer.send("hotkeys:recording", recording),
 });

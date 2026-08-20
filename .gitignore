@@ -9,6 +9,7 @@ certs/**
 
 # Build outputs
 dist/
+dist-test/
 release/
 out/
 

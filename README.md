@@ -4,11 +4,14 @@ A tiny Windows utility that overlays a warm tint and an extra-dim black layer on
 
 - Reduce perceived brightness **below** the system minimum
 - Warm the screen (blue‑light reduction) with a configurable intensity
-- **Always‑on‑top**, **click‑through** overlay that won’t block interaction
+- **Click‑through** overlay that won’t block interaction
 - **Multi‑monitor** support (one overlay per display)
+- **Global hotkeys** (toggle, open controls, optional warmth/dim bumps)
+- **Schedule** — fixed hours or local sunset→sunrise (offline city list)
+- **Fullscreen** — ask, hide overlay, or always stay on top
 - Tray controls, **Launch at startup**, **Debug → Flash overlay**
 - **Settings persist** between restarts
-- **Auto‑update ready** via GitHub Releases
+- **Auto‑update** via GitHub Releases, optional **beta** channel
 
 > Built with **Electron** + **TypeScript**. App identity: `dev.evmlord.warmndim`.
 
@@ -18,10 +21,14 @@ A tiny Windows utility that overlays a warm tint and an extra-dim black layer on
 
 1. Download and run the installer.
 2. Find **Warm N Dim** in your system tray.
-3. Click **Open controls** and adjust **Warmth** and **Dim**.
-4. (Optional) Tick **Launch at startup**.
+3. Click **Open controls** (or press **Ctrl+Alt+Shift+W**) and adjust **Warmth** and **Dim**.
+4. (Optional) Tick **Launch at startup**, set a schedule, or pick how fullscreen apps are handled.
 
-**Tray menu**: Toggle overlay, Open controls, Launch at startup, Debug → Flash overlay, Quit.
+The control window opens on **first run** only. After that the app stays in the tray; click the tray icon or start a second instance to reopen controls.
+
+**Tray menu**: Toggle overlay, Open controls, Launch at startup, Include beta updates, Debug (flash, click-through, fullscreen probe, DevTools, logs), Check for updates, Quit.
+
+**Default hotkeys**: `Ctrl+Alt+W` toggle overlay, `Ctrl+Alt+Shift+W` open controls. Rebind (or clear) them in Controls → Hotkeys. They do not fire inside exclusive-fullscreen games (OS limitation).
 
 ---
 
@@ -34,6 +41,14 @@ We draw two transparent, click‑through windows over each display:
 
 This reduces perceived brightness and blue light without changing physical backlight levels.
 
+Windows often steals z-order from always-on-top windows. Overlay → **Fullscreen apps** lets you choose:
+
+- **Ask each time** (default) — prompt when a fullscreen app is detected
+- **Hide overlay** — hide until that app exits (better for games)
+- **Always stay on top** — keep the overlay and re-assert z-order every couple of seconds
+
+Sunset/sunrise is computed **locally** (`suncalc` + a shipped city list). No geolocation or extra network calls.
+
 ---
 
 ## Build from source (contributors)
@@ -42,6 +57,7 @@ This reduces perceived brightness and blue light without changing physical backl
 
 ```bash
 pnpm i
+pnpm test  # unit tests (schedule / fullscreen math / settings migrate)
 pnpm dev   # watch + run Electron (tsc for main/preload/renderer)
 pnpm dist  # build signed/unsigned installer (NSIS)
 ```
@@ -51,8 +67,10 @@ pnpm dist  # build signed/unsigned installer (NSIS)
 ```
 dist/                     # compiled app used by Electron and packaged build
 src/
-  main.ts                 # Electron main (ESM)
+  main.ts                 # Electron main entry (ESM)
+  lib/                    # settings, overlays, tray, updater, hotkeys, schedule, fullscreen
   preload.ts              # Preload (compiled to CJS)
+  data/cities.json        # offline city presets for sunset mode
   renderer/
     control.html
     control.ts            # no imports/exports; compiled as classic script
@@ -63,8 +81,10 @@ src/
     globals.d.ts           # ambient types (Settings, window.api)
 icons/
   icon.ico
+docs/
+  SIGNING.md              # unsigned vs OV/EV, GH_TOKEN, beta vs stable
 scripts/
-  afterPack.cjs           # optional trimming of locales/extra assets
+  afterPack.cjs           # strip extra locales, PDF viewer, SwiftShader
   release.cjs             # loads .env then builds & publishes
 ```
 
@@ -105,7 +125,10 @@ pnpm release
 
 - Uses `electron-updater` + **GitHub Releases**.
 - On startup, the app checks for updates and downloads in the background. When ready, you’ll be prompted to restart.
-- Tray menu includes **Check for updates…**.
+- Tray menu includes **Check for updates…** and **Include beta updates**.
+- Controls → **Updates** picks **Stable** or **Beta**. Beta follows GitHub prereleases (`0.4.0-beta.1`, etc.). After publishing a hyphenated version, confirm the GitHub release is marked **Pre-release**.
+
+Code signing is optional. See [docs/SIGNING.md](docs/SIGNING.md).
 
 **Publish config** (in `package.json → build.publish`):
 
@@ -126,6 +149,7 @@ pnpm release
 ## Privacy
 
 - No data collection. No network calls except for checking updates (GitHub Releases).
+- Sunset times are computed on-device from a latitude/longitude you set (or a preset city). The city list is shipped with the app.
 
 ---
 

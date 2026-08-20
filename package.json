@@ -1,14 +1,15 @@
 {
   "name": "warm-n-dim",
-  "version": "0.3.2",
+  "version": "0.4.0-beta.1",
   "private": true,
   "type": "module",
   "main": "dist/main.js",
   "description": "Minimal blue-light filter + super dim overlay for Windows (Electron)",
   "scripts": {
-    "build": "tsc -p tsconfig.main.json && tsc -p tsconfig.preload.json && tsc -p tsconfig.renderer.json && cpy \"src/renderer/**/*.{html,css}\" dist/renderer --parents && cpy icons dist --parents",
-    "dev": "concurrently -k \"tsc -w -p tsconfig.main.json\" \"tsc -w -p tsconfig.preload.json\" \"tsc -w -p tsconfig.renderer.json\" \"cpy \\\"src/renderer/**/*.{html,css}\\\" dist/renderer --watch --parents\" \"wait-on dist/main.js && electron .\"",
+    "build": "tsc -p tsconfig.main.json && tsc -p tsconfig.preload.json && tsc -p tsconfig.renderer.json && cpy \"src/renderer/**/*.{html,css}\" dist/renderer --parents && cpy icons dist --parents && cpy \"src/data/*.json\" dist/data",
+    "dev": "concurrently -k \"tsc -w -p tsconfig.main.json\" \"tsc -w -p tsconfig.preload.json\" \"tsc -w -p tsconfig.renderer.json\" \"cpy \\\"src/renderer/**/*.{html,css}\\\" dist/renderer --watch --parents\" \"cpy \\\"src/data/*.json\\\" dist/data --watch\" \"wait-on dist/main.js && electron .\"",
     "start": "electron .",
+    "test": "tsc -p tsconfig.test.json && node --test dist-test/test/scheduleMath.test.js dist-test/test/fullscreenMath.test.js dist-test/test/settingsMigrate.test.js",
     "pack": "electron-builder --dir",
     "dist": "pnpm build && electron-builder",
     "release": "node scripts/release.cjs"
@@ -19,17 +20,20 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "MIT",
   "bugs": {
     "url": "https://github.com/EVMlord/Warm-N-Dim/issues"
   },
   "homepage": "https://github.com/EVMlord/Warm-N-Dim#readme",
   "dependencies": {
     "electron-store": "^11.0.0",
-    "electron-updater": "^6.6.2"
+    "electron-updater": "^6.6.2",
+    "koffi": "^3.1.5",
+    "suncalc": "^2.0.1"
   },
   "devDependencies": {
     "@types/node": "^24.6.2",
+    "@types/suncalc": "^1.9.2",
     "concurrently": "^9.2.1",
     "cpy-cli": "^6.0.0",
     "dotenv": "^17.2.3",
@@ -42,6 +46,9 @@
     "appId": "dev.evmlord.warmndim",
     "productName": "Warm N Dim",
     "asar": true,
+    "asarUnpack": [
+      "**/*.node"
+    ],
     "compression": "maximum",
     "artifactName": "WarmNDim-Setup-${version}.exe",
     "files": [
@@ -81,10 +88,12 @@
   },
   "files.watcherExclude": {
     "**/dist/**": true,
+    "**/dist-test/**": true,
     "**/release/**": true
   },
   "search.exclude": {
     "dist/**": true,
+    "dist-test/**": true,
     "release/**": true
   }
 }

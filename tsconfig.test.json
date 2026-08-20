@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "outDir": "dist-test",
+    "rootDir": ".",
+    "strict": true,
+    "skipLibCheck": true,
+    "types": ["node"],
+    "lib": ["ES2022"]
+  },
+  "include": [
+    "test/**/*.ts",
+    "src/lib/scheduleMath.ts",
+    "src/lib/fullscreenMath.ts",
+    "src/lib/settingsMigrate.ts",
+    "src/types/**/*.d.ts"
+  ]
+}

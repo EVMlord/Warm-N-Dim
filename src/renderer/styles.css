@@ -13,10 +13,11 @@
 }
 
 .overlay-body #dim,
-.overlay-body #tint {
+.overlay-body #tint,
+.overlay-body #flash {
   position: fixed;
   inset: 0;
-  pointer-events: none; /* ensure click-through from renderer side too */
+  pointer-events: none;
 }
 
 .overlay-body #dim {
@@ -28,7 +29,6 @@
   opacity: 0;
 }
 
-/* Debug flash layer (cyan blink) */
 .overlay-body #flash {
   background: rgba(0, 255, 255, 0.8);
   opacity: 0;
@@ -38,7 +38,10 @@
 /* Control window */
 .control-body {
   margin: 0;
-  padding: 14px;
+  padding: 12px 14px 10px;
+  background: #1b1b1b;
+  color: #eee;
+  user-select: none;
 }
 header {
   display: flex;
@@ -49,38 +52,115 @@ header h1 {
   font-size: 16px;
   margin: 0;
 }
-header button {
+header button,
+#checkUpdates {
   padding: 6px 10px;
   border-radius: 8px;
   border: 1px solid #444;
   background: #222;
   color: #fff;
+  cursor: pointer;
+}
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin-top: 12px;
+  border-bottom: 1px solid #333;
+}
+.tab {
+  flex: 1;
+  padding: 6px 4px;
+  border: none;
+  background: transparent;
+  color: #aaa;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  font-size: 12px;
+}
+.tab[aria-selected="true"] {
+  color: #fff;
+  border-bottom-color: #e08a3c;
+}
+.tab-panel {
+  margin-top: 10px;
+  min-height: 280px;
+}
+.hidden {
+  display: none !important;
 }
 
 .slider {
-  margin-top: 14px;
+  margin-top: 12px;
   display: grid;
-  grid-template-columns: 80px 1fr 48px;
+  grid-template-columns: 80px 1fr 36px;
   gap: 8px;
   align-items: center;
 }
 label {
-  opacity: 0.8;
+  opacity: 0.85;
+  font-size: 13px;
 }
 input[type="range"] {
   width: 100%;
 }
 
-.row {
-  margin-top: 12px;
-}
 .checkbox-row {
   display: flex;
   gap: 8px;
   align-items: center;
+  margin-top: 12px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 10px;
+  font-size: 13px;
+}
+.field select,
+.field input[type="time"],
+.field input[type="number"],
+.hotkey {
+  background: #111;
+  color: #eee;
+  border: 1px solid #444;
+  border-radius: 6px;
+  padding: 5px 8px;
+}
+.row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.hint {
+  margin-top: 8px;
+  font-size: 11px;
+  opacity: 0.7;
+  line-height: 1.35;
+}
+.error {
+  margin: 0 0 6px 0;
+  min-height: 0;
+  font-size: 11px;
+  color: #f0a0a0;
+}
+
+.hotkey-row {
+  display: grid;
+  grid-template-columns: 1fr 150px;
+  gap: 8px;
+  align-items: center;
+  margin-top: 8px;
+}
+.hotkey.capturing {
+  outline: 1px solid #e08a3c;
 }
 
 footer {
-  margin-top: 14px;
+  margin-top: 10px;
   opacity: 0.7;
 }
