@@ -1,5 +1,7 @@
 # Warm-N-Dim
 
+[![Release](https://github.com/EVMlord/Warm-N-Dim/actions/workflows/release.yml/badge.svg)](https://github.com/EVMlord/Warm-N-Dim/actions/workflows/release.yml)
+
 A tiny Windows utility that overlays a warm tint and an extra-dim black layer on top of everything. Great for late-night coding, reading, or minimizing eye strain.
 
 - Reduce perceived brightness **below** the system minimum
