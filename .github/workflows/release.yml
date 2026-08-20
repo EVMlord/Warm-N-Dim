@@ -115,15 +115,10 @@ jobs:
           } else {
             $notes = "Warm N Dim $version"
           }
-          $notes = @"
-$notes
-
----
-
-Download **WarmNDim-Setup-$version.exe**. Windows SmartScreen may show “Windows protected your PC” because this build is unsigned. Click **More info** → **Run anyway**.
-"@
+          $footer = "Download **WarmNDim-Setup-$version.exe**. Windows SmartScreen may show `"Windows protected your PC`" because this build is unsigned. Click **More info** then **Run anyway**."
+          $notes = $notes + "`n`n" + $footer
           $notesPath = Join-Path $pwd "release-notes.md"
-          Set-Content -Path $notesPath -Value $notes.Trim() -Encoding utf8NoBOM
+          Set-Content -Path $notesPath -Value $notes -Encoding utf8NoBOM
           gh release edit $tag --notes-file $notesPath
 
       - name: Upload installer artifact
