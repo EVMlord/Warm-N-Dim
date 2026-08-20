@@ -94,10 +94,13 @@ function toggleEnabled(): void {
 
 const gotLock = app.requestSingleInstanceLock();
 if (!gotLock) {
-  app.quit();
+  // quit() is async and can still run whenReady on a second launch
+  app.exit(0);
 } else {
   app.on("second-instance", () => createControlWindow());
 }
+
+if (gotLock) {
 
 ipcMain.on("settings:change", (_evt, patch: Partial<Settings>) => {
   const before = getSettings();
@@ -233,3 +236,4 @@ app.on("will-quit", () => {
 app.on("window-all-closed", () => {
   // Keep running in tray on Windows
 });
+}

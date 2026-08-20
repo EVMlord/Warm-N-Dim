@@ -80,7 +80,7 @@ export function setupAutoUpdater(): void {
     "[Updater] app-update.yml present =",
     fs.existsSync(updaterCfgPath),
     "path:",
-    updaterCfgPath
+    updaterCfgPath,
   );
 
   if (!app.isPackaged) {
@@ -122,7 +122,7 @@ export function setupAutoUpdater(): void {
       "[Updater] update-not-available; current =",
       app.getVersion(),
       "latest =",
-      i?.version
+      i?.version,
     );
     setStatus(`Up to date (${app.getVersion()}).`);
   });
@@ -134,10 +134,12 @@ export function setupAutoUpdater(): void {
     logMain(
       "[Updater] download-progress:",
       `${p.percent.toFixed(0)}%`,
-      `${Math.round(p.bytesPerSecond / 1024)} KB/s`
+      `${Math.round(p.bytesPerSecond / 1024)} KB/s`,
     );
     setStatus(`Downloading update… ${p.percent.toFixed(0)}%`);
-    getTray()?.setToolTip?.(`Warm N Dim — downloading ${p.percent.toFixed(0)}%`);
+    getTray()?.setToolTip?.(
+      `Warm N Dim — downloading ${p.percent.toFixed(0)}%`,
+    );
   });
   updater.on("update-downloaded", (i: UpdateInfo) => {
     logMain("[Updater] update-downloaded:", i.version);
@@ -167,11 +169,16 @@ export function setupAutoUpdater(): void {
     .catch((err) => logMain("[Updater] initial check failed:", String(err)));
 
   if (!updateTimer) {
-    updateTimer = setInterval(() => {
-      updater!.checkForUpdates().catch((err) =>
-        logMain("[Updater] periodic check failed:", String(err))
-      );
-    }, 6 * 60 * 60 * 1000);
+    updateTimer = setInterval(
+      () => {
+        updater!
+          .checkForUpdates()
+          .catch((err) =>
+            logMain("[Updater] periodic check failed:", String(err)),
+          );
+      },
+      6 * 60 * 60 * 1000,
+    );
     updateTimer.unref();
   }
 }
